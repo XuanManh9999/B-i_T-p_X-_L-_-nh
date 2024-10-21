@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Image Processing</title>
+    <style>
+      #canvas {
+        border: 1px solid black;
+      }
+      button {
+        margin: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Image Processing Tools</h2>
+    <input type="file" id="upload" accept="image/*" />
+    <br />
+    <canvas id="canvas"></canvas>
+    <br />
+    <button onclick="applyNegative()">Negative Image</button>
+    <button onclick="applyContrast()">Enhance Contrast</button>
+    <button onclick="applyLogTransform()">Log Transform</button>
+    <button onclick="applyHistogramEqualization()">
+      Histogram Equalization
+    </button>
+    <script>
+      let canvas = document.getElementById("canvas");
+      let ctx = canvas.getContext("2d");
+      let img = new Image();
+
+      document
+        .getElementById("upload")
+        .addEventListener("change", function (e) {
+          let reader = new FileReader();
+          reader.onload = function (event) {
+            img.onload = function () {
+              canvas.width = img.width;
+              canvas.height = img.height;
+              ctx.drawImage(img, 0, 0);
+            };
+            img.src = event.target.result;
+          };
+          reader.readAsDataURL(e.target.files[0]);
+        });
+      function applyNegative() {
+        let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        let data = imageData.data;
+
+        for (let i = 0; i < data.length; i += 4) {
+          data[i] = 255 - data[i]; // Red
+          data[i + 1] = 255 - data[i + 1]; // Green
+          data[i + 2] = 255 - data[i + 2]; // Blue
+        }
+
+        ctx.putImageData(imageData, 0, 0);
+      }
+      function applyContrast() {
+        let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        let data = imageData.data;
+
+        
+        let contrastFactor = 1.5; // Adjust contrast level
+
+        for (let i = 0; i < data.length; i += 4) {
+          data[i] = contrastFactor * (data[i] - 128) + 128; // Red
+          data[i + 1] = contrastFactor * (data[i + 1] - 128) + 128; // Green
+          data[i + 2] = contrastFactor * (data[i + 2] - 128) + 128; // Blue
+        }
+        ctx.putImageData(imageData, 0, 0);
+      }
+      function applyLogTransform() {
+        let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        let data = imageData.data;
+
+        for (let i = 0; i < data.length; i += 4) {
+          data[i] = (255 * Math.log(1 + data[i])) / Math.log(256); // Red
+          data[i + 1] = (255 * Math.log(1 + data[i + 1])) / Math.log(256); // Green
+          data[i + 2] = (255 * Math.log(1 + data[i + 2])) / Math.log(256); // Blue
+        }
+
+        ctx.putImageData(imageData, 0, 0);
+      }
+      function applyHistogramEqualization() {
+        let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        let data = imageData.data;
+        let histogram = new Array(256).fill(0);
+
+        for (let i = 0; i < data.length; i += 4) {
+          let brightness =
+            0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+          histogram[Math.floor(brightness)]++;
+        }
+
+        let cdf = histogram.slice();
+        for (let i = 1; i < 256; i++) {
+          cdf[i] += cdf[i - 1];
+        }
+
+        let cdfMin = cdf.find((v) => v > 0);
+        let cdfMax = Math.max(...cdf);
+        for (let i = 0; i < data.length; i += 4) {
+          let brightness =
+            0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+          let equalizedValue =
+            ((cdf[Math.floor(brightness)] - cdfMin) / (cdfMax - cdfMin)) * 255;
+
+          data[i] = equalizedValue; // Red
+          data[i + 1] = equalizedValue; // Green
+          data[i + 2] = equalizedValue; // Blue
+        }
+
+        ctx.putImageData(imageData, 0, 0);
+      }
+    </script>
+  </body>
+</html>
